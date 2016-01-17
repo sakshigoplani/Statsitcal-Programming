@@ -1,0 +1,83 @@
+library(Rcpp)
+
+sourceCpp("mySweep_new_cpp.cpp")
+
+error <- function(Y,Yhat){
+  return(mean((Y-Yhat)^2))
+} 
+
+test_spline <- function(x,Y,beta){
+  p = length(beta)-1
+  n = length(x)
+  X = matrix(x, nrow = n)
+  
+  for (k in (1:(p-1))/p)
+    X = cbind(X, (x>k)*(x-k))
+  Yhat = cbind(rep(1,dim(X)[1]), X)%*%beta
+  return(Yhat)
+}
+
+my_ridge <- function(X, Y, lambda)
+{
+  n = dim(X)[1]
+  p = dim(X)[2]
+  Z = cbind(rep(1, n), X, Y)
+  A = t(Z) %*% Z
+  D = diag(rep(lambda, p+2))
+  D[1, 1] = 0
+  D[p+2, p+2] = 0
+  A = A + D
+  S = mySweep_cpp(A, p+1)
+  beta = S[1:(p+1), p+2]
+  return(beta)
+}
+
+
+my_spline <- function(x,Y,lambda = 10.,p) {
+  n = length(x)
+  X = matrix(x, nrow=n)
+  for (k in (1:(p-1))/p)
+    X = cbind(X, (x>k)*(x-k))
+  
+  beta = my_ridge(X, Y, lambda)
+  
+  return(beta)
+}
+
+n = 100
+p = 500
+sigma = .1
+
+x = runif(n)
+Y = x^2 + rnorm(n)*sigma
+X = matrix(x, nrow=n)
+
+
+no_train = round(2*n/3)
+no_test = n - no_train
+train_ind =sample(1:n,no_train)
+test_ind = setdiff(1:n,train_ind)
+
+X_train = sort(x[train_ind])
+Y_train = X_train^2 + rnorm(no_train)*sigma
+
+X_test = sort(x[test_ind])
+Y_test = X_test^2 + rnorm(no_test)*sigma
+
+training_error = NULL
+testing_error = NULL
+
+for(lambda_it in  seq(1,100)){
+  beta = my_spline(X_train,Y_train,lambda_it,p)
+  Yhat_train = test_spline(X_train,Y_train,beta)
+  training_error = append(training_error,error(Y_train,Yhat_train))
+  Yhat_test = test_spline(X_test,Y_test,beta)
+  testing_error = append(testing_error,error(Y_test,Yhat_test))
+}
+
+lambda_it = seq(1,100)
+par(mfrow = c(1,2))
+plot(lambda_it, training_error, col = "red")
+plot(lambda_it, testing_error, col = "green")
+
+
