@@ -1,0 +1,163 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 28 20:56:33 2015
+
+@author: Sakshi Goplani
+"""
+
+
+## view the first few rows of the data
+import pandas as pd
+import numpy as np
+from scipy import linalg
+from math import sqrt
+        
+        
+def mylogistic(_x, _y):
+    x = _x.copy()
+    y = _y.copy()
+    r, c = x.shape
+
+    beta = np.zeros((c, 1))
+    epsilon = 1e-6
+
+    while True:
+        eta = np.dot(x, beta)
+        pr = exp_it(eta)
+        w = pr * (1 - pr)
+        z = eta + (y - pr) / w
+        sw = np.sqrt(w)
+        mw = np.repeat(sw, c, axis=1)
+        
+        x_work = mw * x
+        y_work = sw * z
+        beta_new = mylm_qr(x_work, y_work)
+        err = np.sum(np.abs(beta_new - beta))
+        beta = beta_new
+        if err < epsilon:
+            break
+
+    return beta
+    
+
+
+def exp_it(_x):
+    
+    x = _x.copy()
+    y = 1 / (1 + np.exp(-x))
+    return y
+    
+def mylm_qr(X,Y):
+    
+    X1 = np.copy(X)
+    n, p = X.shape
+    Z = np.concatenate((X,Y),axis=1)
+    _, R = myCode(Z)
+    R1 = R[0:p, 0:p]
+    Y1=np.ones(shape=(6,1))
+    Y1[:,0] = R[0:p, p]
+    beta=np.ones(shape=(6,1))
+    beta = my_solve(R1, Y1)
+    return (beta)
+    
+def myCode(A):             #My QR code using Gram Schmidt
+    
+    n, m = A.shape
+    U=np.zeros(shape=(n,m))
+    Q=np.zeros(shape=(n,m))
+    R=np.zeros(shape=(n,m))
+    S1=np.zeros(shape=(n,1))
+    U[:,0]=A[:,0]
+    for k in range(1,m):
+        S=np.zeros(shape=(n,1))
+        for j in range(k):
+            z1=sum(U[:,j]*A[:,k])
+            z2=sum(U[:,j]*U[:,j])
+            z=z1/z2
+            S1[:,0]=z*U[:,j]
+            S[:,0]=S[:,0]+S1[:,0]
+        U[:,k]=A[:,k]-S[:,0]
+    for k in range(m):
+        for i in range(n):
+            Q[i,k]=U[i,k]/sqrt(sum(U[:,k]**2))
+    H=Q.transpose()
+    R=np.dot(H,A)
+    return Q,R
+    
+def my_solve(R1,Y1):
+    
+    n,p = R1.shape
+    Q1=np.concatenate((R1[0:p,0:p],Y1),axis=1)
+    first = np.ones(shape=(1,1))
+    Q2=np.concatenate([Y1.transpose(),first],axis=1)
+    Q=np.concatenate((Q1,Q2),axis=0)
+    X=mySweep(Q,p)
+    res=np.ones(shape=(6,1))
+    res[:,0]=X[0:p,p]
+    return(res)
+    
+def mySweep(B, m):
+    
+    A = np.copy(B)
+    n, c = A.shape
+    Det = 1
+    if A.shape[0] != A.shape[1]:
+        print 'Enter a square matrix'
+    for k in range(m):
+        Det = Det * (A[k,k])
+        if abs(A[k,k]) < 0.005:
+            print 'Matrix is not invertible'
+            return A 
+        
+        for i in range(n):
+            for j in range(n):
+                if i != k and j != k:
+                    A[i,j] = A[i,j]- A[i,k]*A[k,j]/A[k,k]
+
+        for i in range(n):
+            if i != k:
+                A[i,k] = A[i,k]/A[k,k]
+
+        for j in range(n):
+            if j != k:
+                A[k,j] = A[k,j]/A[k,k]
+
+        A[k,k] = -1/A[k,k]         
+    return A
+
+  
+mydata=pd.read_csv('binary.csv') #Reads the binary.csv file if in the same folder
+#print(mydata)
+
+A=mydata.as_matrix(columns=None)
+#print(A)
+n, m = A.shape
+Y=np.zeros(shape=(n,1))
+Y[:,0]=A[:,0]
+#print(Y)
+
+X=np.ones(shape=(n,6))
+X[:,1]=A[:,1]
+X[:,2]=A[:,2]
+#print(X)
+
+for i in range(n):
+    if A[i,3] == 2:
+        X[i,3]=1
+    else:
+        X[i,3]=0
+
+for i in range(n):
+    if A[i,3] == 3:
+        X[i,4]=1
+    else:
+        X[i,4]=0
+
+for i in range(n):
+    if A[i,3] == 4:
+        X[i,5]=1
+    else:
+        X[i,5]=0
+        
+B=mylogistic(X,Y)
+print(B)
