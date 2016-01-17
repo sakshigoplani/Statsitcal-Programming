@@ -1,0 +1,52 @@
+library(Rcpp)
+library(RcppArmadillo)
+sourceCpp("Sakshi_final_assignment_cpp.cpp")
+
+# Call to Random Number Generator using Uniform Distribution
+U = runifC(1,10000)
+par(mfrow=c(1,2))
+hist(U,xlab ="U",prob=T,main="Histogram of U")
+plot(U[seq(2,1000,by=2)], U[seq(3,1001,by=2)] , xlab = expression('x'[2*t]), ylab = expression('x'[2*t+1]), main="scatterplot")
+
+# Call to Random Number Generator using Normal Distribution
+normaldist = rnormC(76543,1e4)
+X = normaldist[seq(1,20000,by=2)]
+Y = normaldist[seq(2,20000,by=2)]
+par(mfrow =c(1,2))
+hist(X , breaks =30, prob =T, xlim =c(-4,4) , xlab ="X", main = "Histogram of X")
+curve(dnorm(x,mean =0, sd =1) ,lwd =2, add =T, col="blue")
+hist(Y , breaks =30, prob =T, xlim =c(-4,4) ,
+     xlab ="Y", main = "Histogram of Y")
+curve(dnorm(x,mean =0, sd =1) ,lwd =2, add =T, col="blue")
+
+# Call to Metropolis Algorithm starts
+chain=my_metropolis(matrix(0,1,10^3),10^3,10^2,76543)
+hist(chain,xlim=range(c(-10,10)),freq=FALSE)
+# Metropolis Ends
+
+
+#Gibbs Sampling starts
+gibbs<-function (T=1000, M=100, rho=0.99, x0=0, y0=0) {
+p<-rep(0,2*M*T) 
+dim(p)<-c(2,T,M)
+p=my_gibbs(T,M,rho,x0,y0,p)
+return (p)
+}
+library(animation)
+rho <- 0.99
+M=100
+par(mar=c(2,2,1,2), mfrow=c(3,3))
+bvn <- gibbs(x0=5,y0=-8,M=M,rho=rho)
+ani.options(convert='C:/Program Files/ImageMagick-6.9.2-Q16/convert.exe')
+lims <- 8*c(-1,1)
+for (t in 1:9){ plot(bvn[1,t,],bvn[2,t,],
+                      xlim=lims, ylim=lims,
+                      col=1:M,
+                      pch=16, main=paste('t =',t))
+                 ani.pause(.2)
+}#saving as GIF file
+saveGIF({ for (t in 1:10){ plot(bvn[1,t,],bvn[2,t,], xlim = lims, ylim = lims, col=1:M,
+                                pch =16, main = paste('t =',t))
+}
+}, movie.name =paste("bvn_gibbs_rho.gif"))
+# Gibbs Sampling Ends
