@@ -1,0 +1,145 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 12 13:04:35 2015
+
+@author: Sakshi Goplani
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Nov 08 22:48:18 2015
+
+@author: Sakshi Goplani
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+np.random.seed(1)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def accuracy(S, y):
+    
+    return np.mean(np.sign(S)*y)
+	
+def train(X, Y, Xtest, Ytest, m=100, num_iterations=4000):
+              
+    n = X.shape[0]
+    p = X.shape[1] 
+    ntest = Xtest.shape[0]
+    
+    th=0.6
+    X1 = X>th
+    X1 = 2*X1-1
+
+    Xtest1=Xtest>th
+    Xtest1=2*Xtest1-1
+
+    Y = Y*2-1
+    Ytest=Ytest*2-1
+    #Xtest1 = cbind(rep(1, ntest), Xtest)
+    beta=np.zeros(shape=(p,1))
+    
+    accuracies_train = []
+    accuracies_test = []
+	
+    for it in range(1, num_iterations+1):
+        
+        S=np.dot(X1,beta)
+        w=np.exp(-Y*S)
+        y_train=np.sign(S)
+    
+        Stest=np.dot(Xtest1,beta)
+        wtest=np.exp(-Ytest*Stest)
+        y_test=np.sign(Stest)
+    
+        
+        A = np.ones(shape=(1,n))
+        B = np.zeros(shape=(n,p))
+        B=w*Y
+        D=B*X1
+        E=D/n
+        a=np.dot(A,E)
+        #print(a)
+        e=(1-a)/2
+        #j=np.which.min(e)
+        j=e.argmin()
+        #print(j)
+        z=0.5*math.log((1-e[:,j])/e[:,j])
+        
+        #beta[j]=beta[j]+np.log((1-e[j])/e[j])/2
+        beta[j,0]=beta[j,0]+z
+        
+        #y_train = sigmoid(np.dot(X1,beta))
+        accuracies_train.append(accuracy(y_train, Y))
+        
+        #y_test = sigmoid(np.dot(Xtest1,beta))
+        accuracies_test.append(accuracy(y_test, Ytest))
+        
+        if it % 100 == 0:
+            print (it, accuracies_train[-1], accuracies_test[-1] )
+            
+    return beta, accuracies_train, accuracies_test
+		
+		
+# load data
+def load_digits(subset=None, normalize=True):
+    
+    # load digits.csv, adopted from sklearn.
+    import pandas as pd
+    df = pd.read_csv('digits.csv')
+
+    # only keep the numbers we want.
+    if subset is not None:
+        df = df[df.iloc[:,-1].isin(subset)]
+
+    # convert to numpy arrays.
+    digits = df.iloc[:,:-1].values.astype('float')
+    labels = df.iloc[:,-1].values.astype('int')
+
+    # Normalize digit values to 0 and 1.
+    if normalize:
+        digits -= digits.min()
+        digits /= digits.max()
+
+    # Change the labels to 0 and 1.
+    for i in xrange(len(subset)):
+        labels[labels == subset[i]] = i
+
+    labels = labels.reshape((labels.shape[0], 1))
+    return digits, labels
+
+
+
+def split_samples(digits, labels):
+    """Split the data into a training set (70%) and a testing set (30%)."""
+    num_samples = digits.shape[0]
+    num_training = round(num_samples * 0.7)
+    indices = np.random.permutation(num_samples)
+    training_idx, testing_idx = indices[:num_training], indices[num_training:]
+    return (digits[training_idx], labels[training_idx],
+            digits[testing_idx], labels[testing_idx])
+
+
+
+digits, labels = load_digits(subset=[3, 5], normalize=True)
+training_digits, training_labels, testing_digits, testing_labels = split_samples(digits, labels)
+print '# training', training_digits.shape[0]
+print '# testing', testing_digits.shape[0]
+
+
+beta, accuracies_train, accuracies_test = train(training_digits, training_labels, testing_digits, testing_labels)
+
+plt.figure(figsize=(10,5))
+plt.subplot(1, 2, 1)
+plt.ylabel('Training Accuracy')
+plt.xlabel('Iteration')
+#plt.plot(range(len(accuracies_train)), accuracies_train)
+plt.plot(range(len(accuracies_train)), accuracies_train)
+plt.subplot(1, 2, 2)
+plt.ylabel('Testing Accuracy')
+plt.xlabel('Iteration')
+plt.plot(range(len(accuracies_test)), accuracies_test)
+plt.show()
