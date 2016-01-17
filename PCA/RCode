@@ -1,0 +1,86 @@
+myCode <- function(A)   #My QR code using Gram Schmidt
+{
+  n = dim(A)[1]
+  m = dim(A)[2]
+  U=matrix(0,n,m)
+  Q=matrix(0,n,m)
+  R=matrix(0,n,m)
+  S1=matrix(0,n,1)
+  U[,1]=A[,1]
+  for (k in 2:m)
+  {
+    S=matrix(0,n,1)
+    for (j in 1:(k-1))
+    {
+      z1=sum(U[,j]*A[,k])
+      z2=sum(U[,j]*U[,j])
+      z=z1/z2
+      S1=z*U[,j]
+      S = S + S1
+    }
+    U[,k]=A[,k]-S
+  }
+  #print (U)
+  for (k in 1:m)
+  {
+    for (i in 1:n)
+    {
+      Q[i,k]=U[i,k]/sqrt(sum(U[,k]**2))
+      
+    }
+  }
+  #print(Q)
+  R=t(Q)%*%A
+  #print(R)
+  res <- list(Q,R)
+  names(res) <- c("Q","R")
+  return(res)
+}
+
+
+
+
+myeigen <- function(A)
+{
+  T = 1000
+  n = nrow(A)
+  V = matrix(rnorm(n*n), nrow=n)
+  
+  for (i in 1:T)
+  {
+    V = myCode(V)$Q
+    V = A %*% V
+  }
+  
+  B = myCode(V)
+  
+  result <- list(B$Q, diag(B$R))
+  names(result) <- c("vectors", "values")
+  result
+}
+
+my_pca <- function(A)
+{
+  A1=A
+  for(i in 1:ncol(A))
+  {
+    A1[,i]=A[,i]-mean(A[,i])
+  }
+  A=A1
+  P=t(A)%*%A/nrow(A)
+  pcaresult <- myeigen(P)
+  pcaresult
+}
+
+
+myiris=iris
+D = data.matrix(myiris, rownames.force = NA)
+F=D[,-5]
+pcaresult <- my_pca(F)
+print('Standard deviation calculated:')
+print(sqrt(pcaresult$values))
+#eigen(G)
+
+X1 <- princomp(F)
+summary(X1)
+
