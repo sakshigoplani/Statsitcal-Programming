@@ -1,0 +1,171 @@
+mydata <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
+## view the first few rows of the data
+head(mydata)
+
+#data.matrix(mydata, rownames.force = NA)
+
+mydata$rank2[mydata$rank==2] <- 1
+mydata$rank2[mydata$rank!=2] <- 0
+mydata$rank3[mydata$rank==3] <- 1
+mydata$rank3[mydata$rank!=3] <- 0
+mydata$rank4[mydata$rank==4] <- 1
+mydata$rank4[mydata$rank!=4] <- 0
+
+mydata=as.matrix(mydata)
+
+n <- nrow(mydata)
+p <- ncol(mydata)
+Y=matrix(0,n,1)
+Y[,1]=mydata[,1]
+
+X=matrix(0,n,p)
+
+X=mydata[,-1]
+intercept=rep(1, n)
+X=cbind(intercept, X)
+X=X[,-4]
+X=as.matrix(X)
+
+#colnames(X) <- c("intercept","gre","gpa","rank2","rank3","rank4")
+#n1 <- nrow(X)
+#p1 <- ncol(X)
+"
+X1=matrix(1,n1,p1)
+for(i in 2:p1)
+{
+X1[,i]=(X[,i]-mean(X[,i]))/sd(X[,i])
+}"
+
+
+myLogistic <- function(X, Y)
+{
+  n <- nrow(X)
+  p <- ncol(X)    
+  
+  beta <- matrix(rep(0, p), nrow = p)
+  epsilon <- 1e-6
+  repeat
+  {
+    eta <- X %*% beta
+    pr <- expit(eta)
+    w <- pr*(1-pr)
+    Z <- eta + (Y-pr)/w
+    sw <- sqrt(w)
+    mw <- matrix(sw, n, p)
+    Xwork <- mw*X
+    Ywork <- sw*Z
+    beta_new <- mylm_qr(Xwork,Ywork)
+    err <- sum(abs(beta_new-beta))
+    beta <- beta_new
+    if (err<epsilon)
+      break
+  }
+  return(beta)
+}
+
+expit <- function(x)
+{
+  n2=nrow(x)
+  p2=ncol(x)
+  y=matrix(0,n2,p2)
+  for(i in 1:n2)
+  {
+    for(j in 1:p2)
+    {
+      y[i,j] <- 1/(1+exp(-x[i,j]))
+    }
+  }
+  return(y)
+}
+
+
+mylm_qr <- function(X,Y)
+{
+  n <- nrow(X)
+  p <- ncol(X)
+  Z = cbind(X, Y)
+  R = myCode(Z)$R
+  R1 = R[1:p, 1:p]
+  Y1 = R[1:p, (p+1) ]
+  beta = my_solve(R1, Y1)
+}
+
+myCode <- function(A)   #My QR code using Gram Schmidt
+{
+  n = dim(A)[1]
+  m = dim(A)[2]
+  U=matrix(0,n,m)
+  Q=matrix(0,n,m)
+  R=matrix(0,n,m)
+  S1=matrix(0,n,1)
+  U[,1]=A[,1]
+  for (k in 2:m)
+  {
+    S=matrix(0,n,1)
+    for (j in 1:(k-1))
+    {
+      z1=sum(U[,j]*A[,k])
+      z2=sum(U[,j]*U[,j])
+      z=z1/z2
+      S1=z*U[,j]
+      S = S + S1
+    }
+    U[,k]=A[,k]-S
+  }
+  #print (U)
+  for (k in 1:m)
+  {
+    for (i in 1:n)
+    {
+      Q[i,k]=U[i,k]/sqrt(sum(U[,k]**2))
+      
+    }
+  }
+  #print(Q)
+  R=t(Q)%*%A
+  #print(R)
+  res <- list(Q,R)
+  names(res) <- c("Q","R")
+  return(res)
+}
+
+my_solve <- function(X,Y){
+  print(12)
+  n <- nrow(X)
+  p <- ncol(X)
+  Z1 <- cbind(X[1:p,1:p],Y)
+  Z2 <- cbind(t(Y),1)
+  Z <- rbind(Z1,Z2)
+  S = mySweep(Z,p)
+  res = S[1:p,(p+1)]
+  return(res)
+}
+
+mySweep <- function(A, m)
+{
+  n <- dim(A)[1]
+  
+  for (k in 1:m) 
+  {
+    for (i in 1:n)     
+      for (j in 1:n)   
+        if (i!=k  & j!=k)     
+          A[i,j] <- A[i,j] - A[i,k]*A[k,j]/A[k,k]    
+    
+    for (i in 1:n) 
+      if (i!=k) 
+        A[i,k] <- A[i,k]/A[k,k]  
+    
+    for (j in 1:n) 
+      if (j!=k) 
+        A[k,j] <- A[k,j]/A[k,k] 
+    
+    A[k,k] <- - 1/A[k,k] 
+  }
+  return(A)
+}
+
+
+B=myLogistic(X,Y)
+print(B)
+
