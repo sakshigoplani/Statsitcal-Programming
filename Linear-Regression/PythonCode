@@ -1,0 +1,110 @@
+# -*- coding: utf-8 -*-
+
+
+@author: Sakshi Goplani
+"""
+
+import pandas as pd
+import numpy as np
+from scipy import linalg
+
+def mySweep(B, m):
+    A = np.copy(B)
+    n, c = A.shape
+    Det = 1
+    if A.shape[0] != A.shape[1]:
+        print 'Enter a square matrix'
+    for k in range(m):
+        Det = Det * (A[k,k])
+        if abs(A[k,k]) < 0.005:
+            print 'Matrix is not invertible'
+            return A 
+        
+        for i in range(n):
+            for j in range(n):
+                if i != k and j != k:
+                    A[i,j] = A[i,j]- A[i,k]*A[k,j]/A[k,k]
+
+        for i in range(n):
+            if i != k:
+                A[i,k] = A[i,k]/A[k,k]
+
+        for j in range(n):
+            if j != k:
+                A[k,j] = A[k,j]/A[k,k]
+
+        A[k,k] = -1/A[k,k]    
+    
+    print 'Determinant' + str(Det)        
+    return A
+
+
+
+def qr(A):
+    A1 = A.copy()
+    A = A1.as_matrix(columns=None)
+    n, m = A.shape
+    R = A.copy()
+    Q = np.eye(n)
+
+    for k in range(m-1):
+        x = np.zeros((n, 1))
+        nx, cx = X.shape
+        x[k:nx, 0] = R[k:nx, k]
+        v = x
+        v[k] = x[k] + np.sign(x[k,0]) * np.linalg.norm(x)
+
+        s = np.linalg.norm(v)
+        if s != 0:
+            u = v / s
+            R -= 2 * np.dot(u, np.dot(u.T, R))
+            Q -= 2 * np.dot(u, np.dot(u.T, Q))
+    Q = Q.T
+    return Q, R
+    
+def my_solve(R1,Y1):
+    n,p = R1.shape
+    R1 = R1.as_matrix(columns=None)
+    Y1 = Y1.as_matrix(columns=None)
+    Q1=np.concatenate((R1[0:p,0:p],Y1),axis=1)
+    first = np.ones(shape=(1,1))
+    Q2=np.concatenate([Y1.transpose(),first],axis=1)
+    Q=np.concatenate((Q1,Q2),axis=0)
+    X=mySweep(Q,p)
+    res=X[0:p-1,p]
+    return(res)
+
+def mylm_qr(X,Y):
+    X1 = np.copy(X)
+    Y1 = np.copy(Y)
+    n, p = X.shape
+    first = np.ones(shape=(n,1))
+    P = pd.DataFrame(first,columns = ['first'])
+    Z = pd.concat([P,X,Y],axis=1)
+   
+    _, R = qr(Z)
+    R1 = R[0:p+1, 0:p+1]
+    Y1 = R[0:p+1, p+1]
+    R1 = pd.DataFrame(R1)
+    Y1 = pd.DataFrame(Y1)
+
+    beta = my_solve(R1, Y1)
+    print beta
+
+def mylm(X,Y):
+    X1 = np.copy(X)
+    Y1 = np.copy(Y)
+    n, p = X.shape
+    first = np.ones(shape=(n,1))
+    P = pd.DataFrame(first,columns = ['first'])
+    Z = pd.concat([P,X,Y],axis=1)
+    Z1 = np.dot(Z.transpose(),Z)
+    S = mySweep(Z1,p+1)
+    beta1 = S[0:p,p+1]
+    print(beta1)
+data = pd.read_csv('state_x77.csv')
+
+X = data.drop(data.columns[[0,4]],axis=1)
+Y = data.drop(data.columns[[0,1,2,3,5,6,7,8,9]],axis=1)
+mylm(X,Y)
+mylm_qr(X,Y)
