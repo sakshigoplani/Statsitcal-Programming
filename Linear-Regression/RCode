@@ -1,0 +1,99 @@
+ mySweep <- function(A, m)
+{
+  n <- dim(A)[1]
+  
+  for (k in 1:m) 
+  {
+    for (i in 1:n)     
+      for (j in 1:n)   
+        if (i!=k  & j!=k)     
+          A[i,j] <- A[i,j] - A[i,k]*A[k,j]/A[k,k]    
+    
+    for (i in 1:n) 
+      if (i!=k) 
+        A[i,k] <- A[i,k]/A[k,k]  
+    
+    for (j in 1:n) 
+      if (j!=k) 
+        A[k,j] <- A[k,j]/A[k,k] 
+    
+    A[k,k] <- - 1/A[k,k] 
+  }
+  return(A)
+}
+
+myqr <- function(A)
+{
+  n = nrow(A)
+  m = ncol(A)
+  R = A
+  Q = diag(n)
+  
+  for (k in 1:(m-1))
+  {
+    x = matrix(rep(0, n), nrow = n)
+    x[k:n, 1] = R[k:n, k]
+    g = sqrt(sum(x^2))
+    v = x
+    v[k] = x[k] + sign(x[k,1])*g
+    
+    s = sqrt(sum(v^2))
+    if (s != 0)
+    {
+      u = v / s
+      R = R - 2 * u %*% t(u) %*% R
+      Q = Q - 2 * u %*% t(u) %*% Q
+    }
+  }
+  result <- list(t(Q), R)
+  names(result) <- c("Q", "R")
+  result
+}
+
+
+n <- nrow(X)
+p <- ncol(X)
+
+
+
+my_solve <- function(X,Y){
+  n <- nrow(X)
+  p <- ncol(X)
+  Z1 <- cbind(X[1:p,1:p],Y)
+  Z2 <- cbind(t(Y),1)
+  Z <- rbind(Z1,Z2)
+  S = mySweep(Z,p)
+  res = S[1:p,(p+1)]
+  return(res)
+}
+
+
+mylm<-function(X,Y)
+{
+  lm(Y~X)
+  z=cbind(rep(1,n),X,Y)
+  A=t(z)%*%z
+  S=mySweep(A,p+1)
+  beta_hat=S[1:(p+1),p+2]
+  return(beta_hat)
+}
+
+mylm_qr <- function(X,Y)
+{
+  Z = cbind(rep(1, n), X, Y)
+  R = myqr(Z)$R
+  R1 = R[1:(p+1), 1:(p+1)]
+  Y1 = R[1:(p+1), p+2 ]
+  beta = my_solve(R1, Y1)
+}
+
+state_x77 <- read.csv("C:/Users/Sakshi Goplani/Downloads/state_x77.csv")
+A <- data.matrix(state_x77, rownames.force = NA)
+A1 <- A
+
+Y <- A1[, 5]
+X <- A1[,-c(1,5)]
+beta_hat <- mylm(X,Y)
+beta_hat1 <- mylm_qr(X,Y)
+print(beta_hat)
+print(beta_hat1)
