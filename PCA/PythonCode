@@ -1,0 +1,72 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct 22 20:47:45 2015
+
+@author: Sakshi Goplani
+"""
+
+import numpy as np
+from math import sqrt
+from sklearn import datasets
+from matplotlib.mlab import PCA
+
+iris = datasets.load_iris()
+
+def myCode(A):             #My QR code using Gram Schmidt
+    n, m = A.shape
+    U=np.zeros(shape=(n,m))
+    Q=np.zeros(shape=(n,m))
+    R=np.zeros(shape=(n,m))
+    S1=np.zeros(shape=(n,1))
+    U[:,0]=A[:,0]
+    for k in range(1,m):
+        S=np.zeros(shape=(n,1))
+        for j in range(k):
+            z1=sum(U[:,j]*A[:,k])
+            z2=sum(U[:,j]*U[:,j])
+            z=z1/z2
+            S1[:,0]=z*U[:,j]
+            S[:,0]=S[:,0]+S1[:,0]
+        U[:,k]=A[:,k]-S[:,0]
+    for k in range(m):
+        for i in range(n):
+            Q[i,k]=U[i,k]/sqrt(sum(U[:,k]**2))
+    H=Q.transpose()
+    R=np.dot(H,A)
+    return Q,R
+    
+def eigen_qr(A):
+    T = 1000
+    A_copy = A.copy()
+    r, c = A_copy.shape
+
+    V = np.random.random_sample((r, r))
+
+    for i in range(T):
+        Q, _ = myCode(V)
+        V = np.dot(A_copy, Q)
+
+    Q, R = myCode(V)
+
+    return R.diagonal(), Q                       
+            
+def my_pca(A):
+    A1 = A.copy()
+    r, c = A1.shape
+    for i in range(c):
+        A1[:,i]=A[:,i]-np.mean(A[:,i])
+    A=A1
+    P=np.dot(A.transpose(),A)
+    P1=P/r
+    D, V = eigen_qr(P1)
+    print('Standard deviation calculated:')
+    for i in range(c):
+        print(sqrt(D[i]))
+    
+        
+    
+
+X = iris.data[:,:]
+my_pca(X)
+
+
